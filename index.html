@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<div class="tool-con">
+		<select name="" id="tool-type">
+			<option value="mosaic">马赛克</option>
+			<option value="clear">擦除</option>
+		</select>
+		<label for="level">
+			<span>程度</span>
+			<input type="range" id="levelRange">
+			<input type="hidden" id="level">
+		</label>
+		<div>
+			<button id="revert">撤销</button>
+			<button id="rework">重做</button>
+			<button id="makeImg">生成图片</button>	
+		</div>
+		<div>
+			<input type="file" id="uploadFile">	
+		</div>
+	</div>
+
+	<div id="mosaic-con"></div>
+	<script src="./index.js"></script>
+</body>
+</html>

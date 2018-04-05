@@ -6,8 +6,13 @@ class Mosaic {
 		// 获取比例
 		this.pixelRatio = this.getPixelRatio(document.createElement('canvas').getContext('2d'));
 		// 创建canvas
-		this.createMosaicCanvas(opt.el);
+		this.createMosaicCanvas(this.opt);
+		this.eventBind(this.opt);
 	}
+	/*
+	 *	@param context 
+	 *	@return 
+	 */
 	getDefaultOpt() {
 		return {
 			width: '500px',
@@ -15,27 +20,39 @@ class Mosaic {
 			imgSrc: undefined,
 		}
 	}
-	createMosaicCanvas(el) {
-		el.style.position = 'relative';
+	/*
+	 *	@param context 
+	 *	@return 
+	 */
+	createMosaicCanvas(opt) {
+		opt.el.style.position = 'relative';
 		const canvasArr = ['canvasBg','canvasOpe','canvasArea']
 		canvasArr.forEach((currVal,index,arr)=>{
-			this[currVal] = this.createCanvasArrFun(currVal,el)
-			this[`${currVal}Ctx`] = this[currVal].getContext('2d')
+			opt[currVal] = this.createCanvasArrFun(currVal,opt)
+			opt[`${currVal}Ctx`] = opt[currVal].getContext('2d')
 		})
 	}
-	createCanvasArrFun(idStr,parent){
+	/*
+	 *	@param context 
+	 *	@return 
+	 */
+	createCanvasArrFun(idStr,opt){
 		let canvas = document.createElement('canvas');
-		canvas.style.height = this.opt.height;
-		canvas.style.width = this.opt.width;
 		canvas.style.position = 'absolute';
 		canvas.style.top = 0;
 		canvas.style.left = 0;
-		canvas.setAttribute('height',parseInt(this.opt.height)*2)
-		canvas.setAttribute('width',parseInt(this.opt.width)*2)
+		canvas.style.height = opt.height;
+		canvas.style.width = opt.width;
+		canvas.setAttribute('height',parseInt(opt.height)*2)
+		canvas.setAttribute('width',parseInt(opt.width)*2)
 		canvas.setAttribute('id',idStr);
-		parent.appendChild(canvas);
+		opt.el.appendChild(canvas);
 		return canvas
 	}
+	/*
+	 *	@param context 
+	 *	@return 
+	 */
 	getPixelRatio(context) {
 	  	let backingStore = context.backingStorePixelRatio ||
 	    	context.webkitBackingStorePixelRatio ||
@@ -44,6 +61,26 @@ class Mosaic {
 	    	context.oBackingStorePixelRatio ||
 	    	context.backingStorePixelRatio || 1;
    		return (window.devicePixelRatio || 1) / backingStore;
+	}
+	eventBind(opt){
+		// 图片上传
+		opt.uploadImg.addEventListener('change',function(event){
+			let url = window.URL.createObjectURL(event.target.files[0]);
+			let img = new Image();
+			img.src = url;
+			img.onload = function(){
+				opt.canvasBgCtx.drawImage(img,0,0,100,100)	
+			}
+			// let fileReader = new FileReader();
+			// fileReader.readAsDataURL(event.target.files[0]);
+			// fileReader.onload =function(data){
+			// 	let img = new Image();
+			// 	img.src = data.target.result;
+			// 	img.onload = function(){
+			// 		opt.canvasBgCtx.drawImage(img,0,0,100,100)	
+			// 	}
+			// }
+		})
 	}
 }
 const opt = {

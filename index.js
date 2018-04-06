@@ -10,6 +10,10 @@ class Mosaic {
 		let postion = this.getElemPos(opt.el)
 		opt.offsetTop = postion.y;
 		opt.offsetLeft = postion.x;
+		if(opt.imgUrl){
+			this.readImgURL(opt,opt.imgUrl);
+		}
+		this.setCanvasPicURL = this.setCanvasPicURLCreater(opt)
 		// 事件绑定 所有的事件绑定处理都在这里
 		this.eventBind(opt);
 		// 初始化值(一些值根据dom的value来改变这里获取一次)
@@ -65,6 +69,15 @@ class Mosaic {
 		opt.el.appendChild(canvas);
 		return canvas
 	}
+	setCanvasPicURLCreater(opt){
+		return function(urlPath){
+			if(typeof urlPath === 'string'){
+				this.readImgURL(opt,urlPath,true);
+			}else{
+				alert(`请输入正确图片地址`)
+			}	
+		}
+	}
 	getInitValue(opt){
 		// 获取范围和马赛克程度
 		opt.operateArea = +opt.operateAreaEl.value;
@@ -86,9 +99,15 @@ class Mosaic {
 	    	context.backingStorePixelRatio || 1;
    		return (window.devicePixelRatio || 1) / backingStore;
 	}
-	readImgURL(opt){
+	readImgURL(opt,imgUrl,clear){
+		let canvasSize = opt.canvasSize;
+		if(clear){
+			opt.operateList = [];
+			opt.canvasAreaCtx.clearRect(0, 0, canvasSize, canvasSize);
+			opt.canvasBgCtx.clearRect(0, 0, canvasSize, canvasSize);	
+		}
 		let img = new Image();
-		img.src = opt.imgUrl;
+		img.src = imgUrl;
 		img.onload = function(e) {
 			let canvasSize = opt.canvasSize,
 				height = e.target.height,
@@ -111,6 +130,10 @@ class Mosaic {
 			}
 			opt.canvasBgCtx.drawImage(img,left, top, imageWidth, imageHeight)	
 		}
+		img.onerror = function(error){
+			console.log(error)
+			alert('请输入正确的图片地址')
+		}
 	}
 	getElemPos(el) {
         let pos = {"top":0, "left":0};
@@ -128,6 +151,7 @@ class Mosaic {
          return {x:pos.left, y:pos.top};
 	}
 	eventBind(opt){
+		const that = this;
 		function getXY(p,d,i,j){
 		    return [d[p],d[p+1],d[p+2],d[p+3]];
 		}
@@ -150,31 +174,8 @@ class Mosaic {
 		}
 		// 图片上传
 		opt.uploadImg.addEventListener('change',function(event){
-			let url = window.URL.createObjectURL(event.target.files[0]),
-				img = new Image();
-			img.src = url;
-			img.onload = function(e) {
-				let canvasSize = parseInt(opt.width)*2,
-					height = e.target.height,
-					width = e.target.width,
-					imgRatio = height/width,
-					imageWidth,
-					imageHeight,
-					top,
-					left;
-				if(imgRatio > 1) {
-					imageWidth = canvasSize/imgRatio,
-					imageHeight = canvasSize,
-					top = 0,
-					left = (canvasSize-imageWidth)/2;
-				}else if(imgRatio < 1) {
-					imageWidth = canvasSize,
-					imageHeight = imgRatio*canvasSize,
-					top = (canvasSize-imageHeight)/2,
-					left = 0;
-				}
-				opt.canvasBgCtx.drawImage(img,left, top, imageWidth, imageHeight)
-			}
+			let url = window.URL.createObjectURL(event.target.files[0]);
+			that.readImgURL(opt,url,true);
 			// let fileReader = new FileReader();
 			// fileReader.readAsDataURL(event.target.files[0]);
 			// fileReader.onload =function(data){
@@ -279,14 +280,13 @@ class Mosaic {
 	                            //设置小方格的颜色
                             	let setP = 4*((row+k)*w+column+l);
                             	setXY(setP,d,color,l);
-	                        }    
-	                    }   
-	                }    
+	                        }
+	                    }
+	                }
 	            }
 	            opt.canvasAreaCtx.putImageData(oImg,positionX,positionY);
 			}else if(opt.operateStart && opt.operateType === 'clear'){
-				opt.canvasAreaCtx.clearRect(positionX,positionY,operateArea,operateArea);  
-				
+				opt.canvasAreaCtx.clearRect(positionX,positionY,operateArea,operateArea);
 			}
 		})
 		opt.canvasOpe.addEventListener('mouseout',function(){
@@ -308,6 +308,7 @@ const opt = {
 	// imgUrl:'./demo.jpg'
 }
 let mosaic = new Mosaic(opt);
+window._mosaic = mosaic;
 console.log(mosaic);
 
 

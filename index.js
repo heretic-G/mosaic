@@ -1,18 +1,22 @@
-
 class Mosaic {
-	constructor (opt) {
+	constructor (option) {
 		// 合并参数
-		this.opt = Object.assign({},this.getDefaultOpt(),opt);
+		let opt = Object.assign({},this.getDefaultOpt(),option);
 		// 获取比例
-		this.opt.pixelRatio = this.getPixelRatio(document.createElement('canvas').getContext('2d'));
+		opt.pixelRatio = this.getPixelRatio(document.createElement('canvas').getContext('2d'));
 		// 创建canvas
-		this.createMosaicCanvas(this.opt);
-		let postion = this.getElemPos(this.opt.el)
-		this.opt.offsetTop = postion.y;
-		this.opt.offsetLeft = postion.x;
-		this.eventBind(this.opt);
-		this.getInitValue(this.opt)
+		this.createMosaicCanvas(opt);
+		// 获取canvas 距离顶部的距离
+		let postion = this.getElemPos(opt.el)
+		opt.offsetTop = postion.y;
+		opt.offsetLeft = postion.x;
+		// 事件绑定 所有的事件绑定处理都在这里
+		this.eventBind(opt);
+		// 初始化值(一些值根据dom的value来改变这里获取一次)
+		this.getInitValue(opt)
 
+
+		// readImgURL主要是用来读取在线地址的图片 不需要用户上传来获取图片
 		// this.readImgURL(this.opt)
 	}
 	/*
@@ -24,6 +28,8 @@ class Mosaic {
 			width: '500px',
 			height: '500px',
 			imgSrc: undefined,
+			operateStart: false,
+			operateList: [],
 		}
 	}
 	/*
@@ -53,15 +59,19 @@ class Mosaic {
 		canvas.style['z-index'] = index+1;
 		canvas.style.height = opt.height;
 		canvas.style.width = opt.width;
-		canvas.setAttribute('height',parseInt(opt.height)*2)
-		canvas.setAttribute('width',parseInt(opt.width)*2)
+		canvas.setAttribute('height',parseInt(opt.height)*opt.pixelRatio)
+		canvas.setAttribute('width',parseInt(opt.width)*opt.pixelRatio)
 		canvas.setAttribute('id',idStr);
 		opt.el.appendChild(canvas);
 		return canvas
 	}
 	getInitValue(opt){
-		opt.operateAreaSize = opt.operateArea.value;
-		opt.operateLevelSize = opt.operateLevel.value;
+		// 获取范围和马赛克程度
+		opt.operateArea = +opt.operateAreaEl.value;
+		opt.operateLevel = +opt.operateLevelEl.value;
+		// 获取工具类型
+		opt.operateType = opt.operateTypeEl.value;
+		opt.canvasSize = parseInt(opt.width)*opt.pixelRatio;
 	}
 	/*
 	 *	@param context 
@@ -80,7 +90,7 @@ class Mosaic {
 		let img = new Image();
 		img.src = opt.imgUrl;
 		img.onload = function(e) {
-			let canvasSize = parseInt(opt.width)*2,
+			let canvasSize = opt.canvasSize,
 				height = e.target.height,
 				width = e.target.width,
 				imgRatio = height/width,
@@ -118,10 +128,30 @@ class Mosaic {
          return {x:pos.left, y:pos.top};
 	}
 	eventBind(opt){
+		function getXY(p,d,i,j){
+		    return [d[p],d[p+1],d[p+2],d[p+3]];
+		}
+		function setXY(p,d,c,l){
+			if(l === 0){
+				return 
+			}
+		    d[p-4] = c[0];
+		    d[p-3] = c[1];
+		    d[p-2] = c[2];
+		    d[p-1] = c[3];
+		}
+		function convertCanvasToImage(canvas) {
+			let aEl = document.createElement('a');
+			aEl.setAttribute('download',`${Date.now()}.png`);
+			aEl.setAttribute('href',canvas.toDataURL("image/png"))
+			aEl.setAttribute('target','_blank')
+			window.document.body.appendChild(aEl);
+			aEl.click();
+		}
 		// 图片上传
 		opt.uploadImg.addEventListener('change',function(event){
-			let url = window.URL.createObjectURL(event.target.files[0]);
-			let img = new Image();
+			let url = window.URL.createObjectURL(event.target.files[0]),
+				img = new Image();
 			img.src = url;
 			img.onload = function(e) {
 				let canvasSize = parseInt(opt.width)*2,
@@ -174,21 +204,90 @@ class Mosaic {
 			// 	}
 			// }
 		})
-		opt.operateArea.addEventListener('change',function(e){
-			opt.operateAreaSize = e.target.value
+		opt.makeImgEl.addEventListener('click',function(){
+			let download = document.createElement('canvas');
+			download.style.height = opt.height;
+			download.style.width = opt.width;
+			download.setAttribute('height',parseInt(opt.height)*opt.pixelRatio);
+			download.setAttribute('width',parseInt(opt.width)*opt.pixelRatio);
+			let downloadCtx = download.getContext('2d');
+			downloadCtx.drawImage(opt.canvasBg,0,0);
+			downloadCtx.drawImage(opt.canvasArea,0,0);
+			convertCanvasToImage(download);
 		})
-		opt.operateLevel.addEventListener('change',function(e){
-			opt.operateLevelSize = e.target.value
+		opt.revertEl.addEventListener('click',function(){
+			if(opt.operateList.length > 0){
+				opt.canvasAreaCtx.putImageData(opt.operateList.pop(),0,0);	
+			}
+		})
+		opt.reworkEl.addEventListener('click',function(){
+			opt.canvasAreaCtx.clearRect(0,0,parseInt(opt.width)*opt.pixelRatio,parseInt(opt.width)*opt.pixelRatio);  
+			opt.operateList = [];
+		})
+		opt.operateAreaEl.addEventListener('change',function(e){
+			opt.operateArea = e.target.value
+		})
+		opt.operateLevelEl.addEventListener('change',function(e){
+			opt.operateLevel = e.target.value
+		})
+		opt.operateTypeEl.addEventListener('change',function(e){
+			opt.operateType = e.target.value
 		})
 		// 操作范围
+		opt.canvasOpe.addEventListener('mousedown',function(e){
+			if(!opt.operateStart){
+				opt.operateList.push(opt.canvasAreaCtx.getImageData(0,0,parseInt(opt.width)*opt.pixelRatio ,parseInt(opt.width)*opt.pixelRatio))
+				opt.operateStart = true	
+			}
+		})
+		opt.canvasOpe.addEventListener('mouseout',function(e){
+			opt.operateStart = false
+		})
+		opt.canvasOpe.addEventListener('mouseup',function(e){
+			opt.operateStart = false
+		})
 		opt.canvasOpe.addEventListener('mousemove',function(e){
 			let scrollTop = document.documentElement.scrollTop,
-				positionX = (e.clientX - opt.offsetLeft - opt.operateAreaSize/2)*2,
-				positionY = (e.clientY + scrollTop - opt.offsetTop - opt.operateAreaSize/2)*2,
-				canvasSize = parseInt(opt.width)*opt.pixelRatio,
-				operateAreaSize = opt.operateAreaSize*opt.pixelRatio;
+				positionX = (e.clientX - opt.offsetLeft - opt.operateArea/2)*2,
+				positionY = (e.clientY + scrollTop - opt.offsetTop - opt.operateArea/2)*2,
+				canvasSize = opt.canvasSize,
+				operateArea = opt.operateArea*opt.pixelRatio;
+			// 在Ope这层画工具框
 			opt.canvasOpeCtx.clearRect(0, 0, canvasSize,canvasSize);
-			opt.canvasOpeCtx.strokeRect(positionX, positionY, operateAreaSize,operateAreaSize);
+			opt.canvasOpeCtx.strokeRect(positionX, positionY, operateArea,operateArea);
+			if(opt.operateStart && opt.operateType === 'mosaic'){
+				let num = opt.operateLevel,
+					imageDataSize = (operateArea/num|0+1)*num,
+					oImg = opt.canvasBgCtx.getImageData(positionX,positionY,operateArea,operateArea),
+					w = oImg.width,
+	            	d = oImg.data,
+	            	dLength = d.length,
+	            	stepW = w/num,
+	            	point = 0.5*num|0;
+	            //这里是循环画布的像素点
+	            // 每个切分的方块来获取像素点并设置
+	            for(let i=0;i<stepW;i++){
+	                for(let j=0;j<stepW;j++){
+	                    //获取一个小方格的随机颜色，这是小方格的随机位置获取的
+	                    let row = i*num,
+	                    	column = j*num,
+	                    	mosaicP = 4*((row+point)*w+column+point),
+	                    	color = getXY(mosaicP,d);
+	                    //这里是循环小方格的像素点，
+	                    for(let k=0;k<num;k++){
+	                        for(let l=0;l<=num;l++){
+	                            //设置小方格的颜色
+                            	let setP = 4*((row+k)*w+column+l);
+                            	setXY(setP,d,color,l);
+	                        }    
+	                    }   
+	                }    
+	            }
+	            opt.canvasAreaCtx.putImageData(oImg,positionX,positionY);
+			}else if(opt.operateStart && opt.operateType === 'clear'){
+				opt.canvasAreaCtx.clearRect(positionX,positionY,operateArea,operateArea);  
+				
+			}
 		})
 		opt.canvasOpe.addEventListener('mouseout',function(){
 			let canvasSize = parseInt(opt.width)*opt.pixelRatio;
@@ -200,11 +299,15 @@ const opt = {
 	el: document.querySelector('#mosaic-con'),
 	levelEl: document.querySelector('#level'),
 	uploadImg: document.querySelector('#uploadFile'),
-	operateArea: document.querySelector('#operateArea'),
-	operateLevel: document.querySelector('#operateLevel'),
+	operateAreaEl: document.querySelector('#operateArea'),
+	operateTypeEl: document.querySelector('#tool-type'),
+	reworkEl: document.querySelector('#rework'),
+	revertEl: document.querySelector('#revert'),
+	makeImgEl: document.querySelector('#makeImg'),
+	operateLevelEl: document.querySelector('#operateLevel'),
 	// imgUrl:'./demo.jpg'
 }
-var mosaic = new Mosaic(opt);
+let mosaic = new Mosaic(opt);
 console.log(mosaic);
 
 

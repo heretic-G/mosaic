@@ -16,3 +16,4 @@ const opt = {
 	// imgUrl:'./demo.jpg'
 }
 let mosaic = new Mosaic(opt);
+console.log(1);

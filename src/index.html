@@ -2,18 +2,14 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>Document</title>
-	<style>
-		.mosaic-con{
-			cursor: none;
-		}
-	</style>
+	<title>Mosaic</title>
 </head>
 <body>
 	<div class="tool-con">
 		<select name="" id="tool-type">
 			<option value="mosaic">马赛克</option>
 			<option value="clear">擦除</option>
+			<option selected="selected" value="choose">选中</option>
 		</select>
 		<label for="level">
 			<span>程度</span>
@@ -29,9 +25,25 @@
 			<button id="makeImg">生成图片</button>	
 		</div>
 		<div>
-			<input type="file" id="uploadFile">	
+			<label for="uploadFile">
+				<span>上传图片</span>
+				<input type="file" id="uploadFile">	
+			</label>
+		</div>
+		<div class="water-mark">
+			<label for="level">
+				<span>水印图片</span>
+				<input type="file" id="uploadWMFile">
+			</label>
+			<br />
+			<label for="level">
+				<span>透明度</span>
+				<input type="range" id="WMopacity" min="0" max="100" value="100">
+			</label>
+			<!-- <button id="WMRepeat">平铺</button> -->
 		</div>
 	</div>
 	<div id="mosaic-con" class="mosaic-con"></div>
+	<script src="./index.js"></script>
 </body>
 </html>
